@@ -1,0 +1,11 @@
+
+# node
+node_modules
+
+# backend
+BACKEND_PLAN.md
+
+# env
+.env
+
+
