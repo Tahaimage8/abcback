@@ -9,8 +9,18 @@ export async function connectDB(): Promise<void> {
     return;
   }
 
+  const rawUri = env.MONGODB_URI || "";
+  // Strip any surrounding quotes (single or double) and trim whitespace
+  const mongoUri = rawUri.replace(/^["']|["']$/g, "").trim();
+
+  if (!mongoUri.startsWith("mongodb://") && !mongoUri.startsWith("mongodb+srv://")) {
+    throw new Error(
+      `Invalid MONGODB_URI scheme. Expected connection string starting with "mongodb://" or "mongodb+srv://", but got: "${mongoUri.slice(0, 15)}..."`
+    );
+  }
+
   try {
-    const conn = await mongoose.connect(env.MONGODB_URI, {
+    const conn = await mongoose.connect(mongoUri, {
       bufferCommands: false,
     });
     isConnected = true;
