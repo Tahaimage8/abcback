@@ -1,22 +1,39 @@
 import express, { Express, Request, Response, NextFunction } from "express";
-import cors from "cors";
-import { env } from "./config/env.js";
 import { connectDB } from "./config/db.js";
 import numbersRouter from "./routes/numbers.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app: Express = express();
 
-// Middlewares
-app.use(
-  cors({
-    origin: true, // Echo exact origin back to browser to satisfy CORS credentials requirement
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  })
-);
-app.options("*", cors());
+// Custom Robust CORS Middleware for Vercel Serverless & Local
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin;
+
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
+  );
+
+  // Handle preflight OPTIONS request immediately
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
+  next();
+});
+
 app.use(express.json());
 
 // Database connection middleware for Serverless (Vercel) & Local
