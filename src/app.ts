@@ -10,10 +10,13 @@ const app: Express = express();
 // Middlewares
 app.use(
   cors({
-    origin: "*",
+    origin: true, // Echo exact origin back to browser to satisfy CORS credentials requirement
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
+app.options("*", cors());
 app.use(express.json());
 
 // Database connection middleware for Serverless (Vercel) & Local
