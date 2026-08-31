@@ -1,6 +1,7 @@
-import express, { Express, Request, Response } from "express";
+import express, { Express, Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { env } from "./config/env.js";
+import { connectDB } from "./config/db.js";
 import numbersRouter from "./routes/numbers.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
@@ -9,11 +10,21 @@ const app: Express = express();
 // Middlewares
 app.use(
   cors({
-    origin: [env.BETTER_AUTH_URL, "http://localhost:3000"],
+    origin: "*",
     credentials: true,
   })
 );
 app.use(express.json());
+
+// Database connection middleware for Serverless (Vercel) & Local
+app.use(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Healthcheck Route
 app.get("/health", (req: Request, res: Response) => {
