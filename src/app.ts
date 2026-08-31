@@ -2,6 +2,7 @@ import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import { env } from "./config/env.js";
 import numbersRouter from "./routes/numbers.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 const app: Express = express();
 
@@ -30,5 +31,8 @@ app.use("/api/numbers", numbersRouter);
 app.use((req: Request, res: Response) => {
   res.status(404).json({ error: `Route ${req.method} ${req.url} not found` });
 });
+
+// Global Error Handler
+app.use(errorHandler);
 
 export default app;
