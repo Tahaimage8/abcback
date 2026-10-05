@@ -55,7 +55,10 @@ app.get("/health", (req: Request, res: Response) => {
   });
 });
 
+import authRouter from "./routes/auth.js";
+
 // API Routes
+app.use("/api/auth", authRouter);
 app.use("/api/numbers", numbersRouter);
 
 // 404 Handler

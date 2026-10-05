@@ -1,60 +1,44 @@
 import { Request, Response, NextFunction } from "express";
-import mongoose from "mongoose";
+import { verifyToken } from "../utils/jwt.js";
+import { JwtPayload } from "../types/auth.js";
 
-export async function authenticate(
+export const authenticate = (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void> {
+): void => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    res.status(401).json({ error: "Access denied. No token provided." });
+    return;
+  }
+
+  const token = authHeader.split(" ")[1];
+
   try {
-    const authHeader = req.headers.authorization;
-    const cookieHeader = req.headers.cookie;
-
-    let token: string | undefined;
-
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.split(" ")[1];
-    } else if (cookieHeader) {
-      const match = cookieHeader.match(/better-auth\.session_token=([^;]+)/);
-      if (match) {
-        token = match[1];
-      }
-    }
-
-    // Look up session in MongoDB 'session' and 'user' collections if token exists
-    if (token && mongoose.connection.db) {
-      const sessionDoc = await mongoose.connection.db
-        .collection("session")
-        .findOne({ token });
-
-      if (sessionDoc && sessionDoc.userId) {
-        const userDoc = await mongoose.connection.db
-          .collection("user")
-          .findOne({ _id: sessionDoc.userId });
-
-        if (userDoc) {
-          req.user = {
-            id: String(userDoc._id),
-            name: userDoc.name || "User",
-            email: userDoc.email || "",
-            role: (userDoc.role || "MEMBER").toUpperCase(),
-          };
-          return next();
-        }
-      }
-    }
-
-    // Default fallback user for development if no token passed
-    req.user = {
-      id: "anonymous",
-      name: "Guest User",
-      email: "guest@school.com",
-      role: "MEMBER",
-    };
-
+    const decoded = verifyToken(token);
+    req.user = decoded;
     next();
   } catch (error) {
-    console.error("Auth middleware error:", error);
-    res.status(401).json({ error: "Unauthorized: Invalid or expired session token" });
+    res.status(401).json({ error: "Invalid or expired token." });
   }
-}
+};
+
+export const authorize = (...roles: Array<"admin" | "user">) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ error: "Authentication required." });
+      return;
+    }
+
+    if (!roles.includes(req.user.role)) {
+      res.status(403).json({
+        error: "Forbidden. You do not have permission to perform this action.",
+      });
+      return;
+    }
+
+    next();
+  };
+};
