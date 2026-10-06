@@ -3,9 +3,12 @@ import bcrypt from "bcryptjs";
 
 export interface IUser extends Document {
   name: string;
-  email: string;
+  username?: string;
+  email?: string;
   password: string;
-  role: "admin" | "user";
+  role: "admin" | "manager" | "field_officer" | "user";
+  sub_id?: string;
+  parent_manager_id?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -18,10 +21,17 @@ const UserSchema: Schema<IUser> = new Schema(
       required: [true, "Name is required"],
       trim: true,
     },
+    username: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      lowercase: true,
+    },
     email: {
       type: String,
-      required: [true, "Email is required"],
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
     },
@@ -33,8 +43,19 @@ const UserSchema: Schema<IUser> = new Schema(
     },
     role: {
       type: String,
-      enum: ["admin", "user"],
+      enum: ["admin", "manager", "field_officer", "user"],
       default: "user",
+    },
+    sub_id: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+    parent_manager_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
   },
   {
