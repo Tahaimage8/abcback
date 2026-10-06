@@ -56,9 +56,11 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 import authRouter from "./routes/auth.js";
+import adminRouter from "./routes/admin.js";
 
 // API Routes
 app.use("/api/auth", authRouter);
+app.use("/api/admin", adminRouter);
 app.use("/api/numbers", numbersRouter);
 
 // 404 Handler
