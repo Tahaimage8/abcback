@@ -55,19 +55,26 @@ export const login = async (
   try {
     const validatedData = LoginSchema.parse(req.body);
 
-    // Select password explicitly since select: false in model
-    const user = await User.findOne({ email: validatedData.email }).select(
-      "+password"
-    );
+    const identifier = (
+      validatedData.identifier ||
+      validatedData.email ||
+      validatedData.username ||
+      ""
+    ).toLowerCase();
+
+    // Query user by email OR username
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    }).select("+password");
 
     if (!user) {
-      res.status(401).json({ error: "Invalid email or password" });
+      res.status(401).json({ error: "Invalid credentials" });
       return;
     }
 
     const isMatch = await user.comparePassword(validatedData.password);
     if (!isMatch) {
-      res.status(401).json({ error: "Invalid email or password" });
+      res.status(401).json({ error: "Invalid credentials" });
       return;
     }
 
@@ -75,7 +82,9 @@ export const login = async (
       id: (user._id as any).toString(),
       name: user.name,
       email: user.email,
+      username: user.username,
       role: user.role,
+      sub_id: user.sub_id,
     });
 
     res.status(200).json({
@@ -85,7 +94,9 @@ export const login = async (
         id: (user._id as any).toString(),
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
+        sub_id: user.sub_id,
         createdAt: user.createdAt,
       },
     });
