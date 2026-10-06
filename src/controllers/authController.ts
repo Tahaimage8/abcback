@@ -128,7 +128,9 @@ export const getMe = async (
         id: (user._id as any).toString(),
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
+        sub_id: user.sub_id,
         createdAt: user.createdAt,
       },
     });
