@@ -28,11 +28,17 @@ export const ResetManagerPasswordSchema = z.object({
   newPassword: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-export const CreateFieldOfficerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+export const CreateFieldOfficerSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Invalid email address").optional(),
+    username: z.string().optional(),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+  })
+  .refine((data) => data.email || data.username, {
+    message: "Either email or username is required",
+    path: ["email"],
+  });
 
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;

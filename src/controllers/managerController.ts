@@ -37,10 +37,17 @@ export const createFieldOfficer = async (
       return;
     }
 
-    // Check if email already exists
-    const existingEmail = await User.findOne({ email: validatedData.email });
-    if (existingEmail) {
-      res.status(400).json({ error: "Field Officer with this email already exists" });
+    const targetEmail = validatedData.email || (validatedData.username?.includes("@") ? validatedData.username : undefined);
+    const targetUsername = validatedData.username || validatedData.email;
+
+    // Check if email or username already exists
+    const queryConditions: any[] = [];
+    if (targetEmail) queryConditions.push({ email: targetEmail });
+    if (targetUsername) queryConditions.push({ username: targetUsername });
+
+    const existingUser = await User.findOne({ $or: queryConditions });
+    if (existingUser) {
+      res.status(400).json({ error: "Field Officer with this email/username already exists" });
       return;
     }
 
@@ -51,7 +58,8 @@ export const createFieldOfficer = async (
 
     const fieldOfficer = await User.create({
       name: validatedData.name,
-      email: validatedData.email,
+      email: targetEmail || validatedData.email,
+      username: targetUsername || validatedData.username,
       password: validatedData.password,
       role: "field_officer",
       sub_id,
