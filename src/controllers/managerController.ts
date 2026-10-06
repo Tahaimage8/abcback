@@ -27,26 +27,31 @@ export const createFieldOfficer = async (
       return;
     }
 
-    if (!manager.sub_id) {
-      res.status(400).json({ error: "Manager does not have a valid sub_id" });
+    let managerSubId = manager.sub_id;
+    if (!managerSubId && manager.role === "admin") {
+      managerSubId = "314";
+    }
+
+    if (!managerSubId) {
+      res.status(400).json({ error: "Manager does not have a valid sub_id. Please ensure account has a sub_id." });
       return;
     }
 
-    // Check if username already exists
-    const existingUsername = await User.findOne({ username: validatedData.username });
-    if (existingUsername) {
-      res.status(400).json({ error: "Field Officer with this username already exists" });
+    // Check if email already exists
+    const existingEmail = await User.findOne({ email: validatedData.email });
+    if (existingEmail) {
+      res.status(400).json({ error: "Field Officer with this email already exists" });
       return;
     }
 
     // Auto-increment Field Officer sequence for this manager
-    const counterId = `fo_sub_id_${manager.sub_id}`;
+    const counterId = `fo_sub_id_${managerSubId}`;
     const foSeq = await getNextSequence(counterId, 1);
-    const sub_id = `${manager.sub_id}/${foSeq}`;
+    const sub_id = `${managerSubId}/${foSeq}`;
 
     const fieldOfficer = await User.create({
       name: validatedData.name,
-      username: validatedData.username,
+      email: validatedData.email,
       password: validatedData.password,
       role: "field_officer",
       sub_id,
@@ -58,7 +63,7 @@ export const createFieldOfficer = async (
       fieldOfficer: {
         id: (fieldOfficer._id as any).toString(),
         name: fieldOfficer.name,
-        username: fieldOfficer.username,
+        email: fieldOfficer.email,
         role: fieldOfficer.role,
         sub_id: fieldOfficer.sub_id,
         parent_manager_id: fieldOfficer.parent_manager_id,
