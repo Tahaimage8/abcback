@@ -43,14 +43,16 @@ export const optionalAuthenticate = (
   next();
 };
 
-export const authorize = (...roles: Array<"admin" | "user">) => {
+type RoleType = "admin" | "manager" | "field_officer" | "user";
+
+export const authorize = (...roles: Array<RoleType>) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({ error: "Authentication required." });
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role as RoleType)) {
       res.status(403).json({
         error: "Forbidden. You do not have permission to perform this action.",
       });
