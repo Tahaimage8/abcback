@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { FONumber } from "../models/FONumber.js";
+import { User } from "../models/User.js";
 import { z } from "zod";
 
 const mobileNumberRegex = /^01[3-9]\d{8}$/;
@@ -37,12 +38,22 @@ export async function createFONumber(req: Request, res: Response): Promise<void>
 
     const { number, payment_method } = parseResult.data;
 
+    // Fetch user to get FO sub_id
+    const user = await User.findById(userId);
+    const foSubId = user?.sub_id || user?.username || "FO";
+
+    // Count existing numbers added by this FO to compute increment
+    const existingCount = await FONumber.countDocuments({ added_by: userId });
+    const number_id = `${foSubId}/${existingCount + 1}`;
+
     const newNumber = await FONumber.create({
+      number_id,
       number,
       payment_method,
       status: "active",
       added_by: userId,
     });
+
 
     res.status(201).json({
       message: "Number entry added successfully",
