@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { FONumber } from "../models/FONumber.js";
+import { FONumber, FONumberStatus } from "../models/FONumber.js";
 import { User } from "../models/User.js";
 import { z } from "zod";
 
@@ -38,6 +38,13 @@ export async function createFONumber(req: Request, res: Response): Promise<void>
 
     const { number, payment_method } = parseResult.data;
 
+    // Global Uniqueness Check: ensure number does not exist anywhere in system
+    const existingNumber = await FONumber.findOne({ number });
+    if (existingNumber) {
+      res.status(400).json({ error: "This number is already registered in the system." });
+      return;
+    }
+
     // Fetch user to get FO sub_id
     const user = await User.findById(userId);
     const foSubId = user?.sub_id || user?.username || "FO";
@@ -54,12 +61,15 @@ export async function createFONumber(req: Request, res: Response): Promise<void>
       added_by: userId,
     });
 
-
     res.status(201).json({
       message: "Number entry added successfully",
       data: newNumber,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      res.status(400).json({ error: "This number is already registered in the system." });
+      return;
+    }
     console.error("Error creating FO number:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -81,11 +91,26 @@ export async function getFONumbers(req: Request, res: Response): Promise<void> {
       filter.status = status;
     }
 
-    const numbers = await FONumber.find(filter).sort({ createdAt: -1 });
+    const numbers = await FONumber.find(filter).sort({ createdAt: 1 });
+
+    // Fetch user to get sub_id fallback for older numbers without number_id
+    const user = await User.findById(userId);
+    const foSubId = user?.sub_id || user?.username || "FO";
+
+    const formattedNumbers = numbers.map((item, index) => {
+      const obj = item.toObject();
+      if (!obj.number_id) {
+        obj.number_id = `${foSubId}/${index + 1}`;
+      }
+      return obj;
+    });
+
+    // Return newest first
+    formattedNumbers.reverse();
 
     res.status(200).json({
-      count: numbers.length,
-      data: numbers,
+      count: formattedNumbers.length,
+      data: formattedNumbers,
     });
   } catch (error) {
     console.error("Error fetching FO numbers:", error);
@@ -111,14 +136,13 @@ export async function updateFONumberStatus(req: Request, res: Response): Promise
     }
 
     const parseResult = updateStatusSchema.safeParse(req.body);
-    let newStatus: "active" | "inactive" = existing.status === "active" ? "inactive" : "active";
+    let newStatus: FONumberStatus = existing.status === "active" ? "inactive" : "active";
 
     if (parseResult.success && parseResult.data.status) {
       newStatus = parseResult.data.status;
     }
 
     existing.status = newStatus;
-
     await existing.save();
 
     res.status(200).json({
@@ -141,7 +165,6 @@ export async function deleteFONumber(req: Request, res: Response): Promise<void>
     }
 
     const { id } = req.params;
-    // Allow owner or admin/manager to delete
     const filter: Record<string, unknown> = { _id: id };
     if (req.user?.role !== "admin" && req.user?.role !== "manager") {
       filter.added_by = userId;
