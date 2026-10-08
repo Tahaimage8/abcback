@@ -24,6 +24,7 @@ const FONumberSchema: Schema = new Schema(
     number: {
       type: String,
       required: [true, "Mobile number is required"],
+      unique: true,
       trim: true,
     },
     payment_method: {
