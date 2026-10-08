@@ -58,12 +58,16 @@ app.get("/health", (req: Request, res: Response) => {
 import authRouter from "./routes/auth.js";
 import adminRouter from "./routes/admin.js";
 import managerRouter from "./routes/manager.js";
+import foNumbersRouter from "./routes/foNumbers.js";
 
 // API Routes
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/manager", managerRouter);
 app.use("/api/numbers", numbersRouter);
+app.use("/api/fo-numbers", foNumbersRouter);
+app.use("/api/numbers/fo", foNumbersRouter);
+
 
 // 404 Handler
 app.use((req: Request, res: Response) => {
