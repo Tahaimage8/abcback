@@ -4,6 +4,7 @@ export type PaymentMethod = "bkash" | "nogod" | "rocket" | "upay";
 export type FONumberStatus = "active" | "inactive";
 
 export interface IFONumber extends Document {
+  number_id?: string;
   number: string;
   payment_method: PaymentMethod;
   status: FONumberStatus;
@@ -14,6 +15,12 @@ export interface IFONumber extends Document {
 
 const FONumberSchema: Schema = new Schema(
   {
+    number_id: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
     number: {
       type: String,
       required: [true, "Mobile number is required"],
